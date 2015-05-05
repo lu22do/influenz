@@ -1,4 +1,3 @@
-
 Players = new Mongo.Collection("players");
 Nodes = new Mongo.Collection("nodes");
 
