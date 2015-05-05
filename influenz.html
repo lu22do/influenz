@@ -1,0 +1,38 @@
+<head>
+  <title>Influenz</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600' rel='stylesheet' type='text/css'>
+</head>
+
+<body>
+  {{> login}}
+
+  <div class="outer">
+    <div class="logo"></div>
+    <h1 class="title">Influenz</h1>
+    <div class="subtitle">A game of influence</div>
+    <canvas id="canvas" width="400" height="400"></canvas>
+  </div>
+
+  <div>
+    {{>info}}
+  </div>
+</body>
+
+<template name="login">
+  <div class="{{notloggedin}}">
+    <button class='player1'>Start as player 1</button>
+    <button class='player2'>Start as player 2</button>
+  </div>
+</template>
+
+<template name="info">
+  <ul>
+    <li>Player: <span class="{{player}}">{{player}}</span></li>
+    <li>Credit: <span>{{credit}}</span></li>
+    <li>Action: <span>{{state}}</span></li>
+    {{#if distance}}
+    <li>Distance: <span>{{distance}}</span></li>
+    {{/if}}
+  </ul>
+</template>
