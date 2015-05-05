@@ -8,6 +8,8 @@ if (Meteor.isClient) {
   var states = ["Select a node", 
                 "Create a node"];
   var creation_parent;
+  var cursor_x = 0;
+  var cursor_y = 0;
 
   Session.set('state', CREATION);
 
@@ -19,8 +21,8 @@ if (Meteor.isClient) {
     var player = Players.findOne({id: Session.get('playerid')});
     var node = Nodes.findOne({_id: creation_parent});
 
-    return Math.floor(Math.sqrt((player.xpos - node.xpos) * (player.xpos - node.xpos) +
-                                (player.ypos - node.ypos) * (player.ypos - node.ypos)));    
+    return Math.floor(Math.sqrt((cursor_x - node.xpos) * (cursor_x - node.xpos) +
+                                (cursor_y - node.ypos) * (cursor_y - node.ypos)));    
   }
 
   Template.login.events({
@@ -65,19 +67,31 @@ if (Meteor.isClient) {
   window.addEventListener("keydown", function(e) {
     switch(e.keyCode) {
       case 37: // left
-        Meteor.call('LEFTd', Session.get('playerid')); break;
+        if (cursor_x > 0) {
+          cursor_x -= 1;
+        }
+        break;
       case 38: // up
-        Meteor.call('UPd', Session.get('playerid')); break;
+        if (cursor_y > 0) {
+          cursor_y -= 1;
+        }
+        break;
       case 39: // right
-        Meteor.call('RIGHTd', Session.get('playerid')); break;
+        if (cursor_x < WIDTH-1) {
+          cursor_x += 1;
+        }
+        break;
       case 40: // down
-        Meteor.call('DOWNd', Session.get('playerid')); break;
+        if (cursor_y < HEIGHT-1) {
+          cursor_y += 1;
+        }
+        break;
       
       case 13: // enter
         switch(Session.get('state')) {
           case SELECTION:
             var player = Players.findOne({id: Session.get('playerid')});
-            var node = Nodes.findOne({xpos: player.xpos, ypos: player.ypos});
+            var node = Nodes.findOne({xpos: cursor_x, ypos: cursor_y});
             if (node) {
               creation_parent = node._id;
               Session.set('state', CREATION);
@@ -86,14 +100,14 @@ if (Meteor.isClient) {
           
           case CREATION:        
             if (!creation_parent) {
-              Meteor.call('createMotherNode', Session.get('playerid')); 
+              Meteor.call('createMotherNode', Session.get('playerid'), cursor_x, cursor_y); 
               Session.set('state', SELECTION);
             }
             else {
               var node = Nodes.findOne({_id: creation_parent});
-              var power = (node.power - getDistance()) * 2;
+              var power = (node.power - getDistance() / 2);
               var resistance = 5;
-              Meteor.call('createSubNode', Session.get('playerid'), creation_parent, power, resistance); 
+              Meteor.call('createSubNode', Session.get('playerid'), cursor_x, cursor_y, creation_parent, power, resistance); 
               creation_parent = undefined;
 
               Session.set('state', SELECTION);
@@ -166,10 +180,10 @@ if (Meteor.isClient) {
         context.beginPath();
         context.lineWidth = 2;
         context.strokeStyle = '#000000';
-        context.moveTo(player.xpos*GRID_W_PIX, player.ypos*GRID_W_PIX);
-        context.lineTo(player.xpos*GRID_W_PIX + GRID_W_PIX, player.ypos*GRID_W_PIX + GRID_W_PIX);
-        context.moveTo(player.xpos*GRID_W_PIX + GRID_W_PIX, player.ypos*GRID_W_PIX);
-        context.lineTo(player.xpos*GRID_W_PIX, player.ypos*GRID_W_PIX + GRID_W_PIX);
+        context.moveTo(cursor_x*GRID_W_PIX, cursor_y*GRID_W_PIX);
+        context.lineTo(cursor_x*GRID_W_PIX + GRID_W_PIX, cursor_y*GRID_W_PIX + GRID_W_PIX);
+        context.moveTo(cursor_x*GRID_W_PIX + GRID_W_PIX, cursor_y*GRID_W_PIX);
+        context.lineTo(cursor_x*GRID_W_PIX, cursor_y*GRID_W_PIX + GRID_W_PIX);
         context.stroke();
         context.closePath();        
       }
@@ -204,51 +218,24 @@ if (Meteor.isServer) {
         Players.insert({
           id: playerid,
           color: color,
-          xpos: WIDTH/2, // cursor x position
-          ypos: HEIGHT/2, // cursor y position
           credit: 100
         });
       } else {
         Players.update({id: playerid}, {      
-          xpos: WIDTH/2, // cursor x position
-          ypos: HEIGHT/2, // cursor y position
+          id: playerid,
+          color: color,
           credit: 100
         });
       }
     },
-    //keydown events
-    'LEFTd': function(playerid){
-      var player = Players.findOne({id: playerid});
-      if (player.xpos > 0) {
-        Players.update({id: playerid}, {$inc: {xpos: -1}})
-      }
-    },
-    'RIGHTd': function(playerid){
-      var player = Players.findOne({id: playerid});
-      if (player.xpos < WIDTH-1) {
-        Players.update({id: playerid}, {$inc: {xpos: 1}})
-      }
-    },
-    'UPd': function(playerid){
-      var player = Players.findOne({id: playerid});
-      if (player.ypos > 0) {
-        Players.update({id: playerid}, {$inc: {ypos: -1}})
-      }
-    },
-    'DOWNd': function(playerid){
-      var player = Players.findOne({id: playerid});
-      if (player.ypos < HEIGHT-1) {
-        Players.update({id: playerid}, {$inc: {ypos: 1}})
-      }
-    },
-    'createMotherNode': function(playerid) {
+    'createMotherNode': function(playerid, xpos, ypos) {
       var player = Players.findOne({id: playerid});
 
       var node = Nodes.insert({
         player: playerid,
         parent: undefined,
-        xpos: player.xpos, 
-        ypos: player.ypos, 
+        xpos: xpos, 
+        ypos: ypos, 
         power: 5,
         resistance: 1,
         children: []
@@ -256,7 +243,7 @@ if (Meteor.isServer) {
 
       Players.update({id: playerid}, {$set: {mothernode: node._id}})
     },
-    'createSubNode': function(playerid, parent, power, resistance) {
+    'createSubNode': function(playerid, xpos, ypos, parent, power, resistance) {
       var player = Players.findOne({id: playerid});
 
       if (player.credit < 10) {
@@ -266,8 +253,8 @@ if (Meteor.isServer) {
       var node = Nodes.insert({
         player: playerid,
         parent: parent,
-        xpos: player.xpos, 
-        ypos: player.ypos, 
+        xpos: xpos, 
+        ypos: ypos, 
         power: power,
         resistance: resistance,
         children: []
