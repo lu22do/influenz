@@ -1,0 +1,66 @@
+<head>
+  <title>Influenz</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600' rel='stylesheet' type='text/css'>
+</head>
+
+<body>
+  {{> login}}
+
+  <div class="outer">
+    <div class="logo"></div>
+    <h1 class="title">Influenz</h1>
+    <div class="subtitle">A game of influence</div>
+    <canvas id="canvas" width="400" height="400"></canvas>
+  </div>
+
+  <div>
+    {{>info}}
+  </div>
+
+  {{>popup}}
+  {{>end_popup}}
+</body>
+
+<template name="login">
+  <div class="{{notloggedin}}">
+    <button class='player1login' {{player1_loggedin}}>Start as player 1</button>
+    <button class='player2login' {{player2_loggedin}}>Start as player 2</button>
+  </div><br>
+  <div>
+    <button class='restart'>Restart</button>
+  </div>
+</template>
+
+<template name="info">
+  <ul>
+    <li>You are <span class="{{player}}">{{player}}</span></li>
+    <li>Credit: <span>{{credit}}</span></li>
+    <li><span>{{state}}</span></li>
+    {{#if distance}}
+    <li>Distance: <span>{{distance}}</span></li>
+    {{/if}}
+  </ul>
+</template>
+
+<template name="popup">
+  {{#if display}}
+  <div class="popup">
+    <div class="">
+      <b>Set power of the new node (up/down)</b><br><br>
+      Power = <b>{{power}}</b> (cost = {{cost}})
+    </div><br>
+    Press enter when done or esc to give up
+  </div>
+  {{/if}}
+</template>
+
+<template name="end_popup">
+  {{#if display}}
+  <div class="popup">
+    {{message}}
+    <br>
+    Press enter when done
+  </div>
+  {{/if}}
+</template>
